@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Análisis de Indefinidos Interactivos</title>
+    <!-- Carga de Tailwind CSS - Es esencial para el diseño -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Estilos personalizados para la tipografía y el fondo */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f7f9fc;
+        }
+        .card {
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+        }
+        .card:hover {
+            transform: translateY(-2px);
+        }
+        .correct-feedback {
+            background-color: #d1fae5; /* Verde claro */
+            color: #065f46; /* Verde oscuro */
+        }
+        .incorrect-feedback {
+            background-color: #fee2e2; /* Rojo claro */
+            color: #991b1b; /* Rojo oscuro */
+        }
+        .invariable-note {
+            font-size: 0.8rem;
+            color: #6b7280;
+            margin-top: 0.5rem;
+        }
+        .sentence-display {
+            font-size: 1.5rem;
+            font-weight: 600;
+            min-height: 4rem; /* Asegura espacio para la oración */
+            line-height: 2;
+            padding: 1rem 0.5rem; /* Ajuste para que las palabras tengan espacio */
+        }
+        /* ESTILOS PARA LA INTERACCIÓN */
+        .clickable-word {
+            cursor: pointer;
+            padding: 2px 4px;
+            margin: 0 1px;
+            display: inline-block;
+            transition: all 0.15s ease;
+            border-radius: 4px;
+            color: #3b82f6; /* Texto azul para indicar que es clicable */
+        }
+        .clickable-word:hover {
+            background-color: #e0f2fe; /* blue-100 */
+        }
+        .selected-word {
+            background-color: #3b82f6; /* blue-500 */
+            color: white !important; /* Texto blanco al seleccionar */
+            font-weight: 700;
+            padding: 4px 6px;
+        }
+    </style>
+</head>
+<body class="p-4 sm:p-8 flex items-center justify-center min-h-screen">
+
+    <div class="w-full max-w-4xl bg-white card rounded-xl p-6 sm:p-10">
+
+        <h1 class="text-3xl sm:text-4xl font-bold text-gray-800 mb-2">Práctica de Indefinidos</h1>
+        <p class="text-gray-500 mb-6 sm:mb-8 border-b pb-4">Haz click en la palabra indefinida de la oración y luego analiza su función, género y número.</p>
+
+        <!-- Contador y Oración -->
+        <div class="mb-8">
+            <div id="score-display" class="text-lg font-semibold text-blue-600 mb-4">
+                Pregunta: 1 / 30 | Puntuación: 0 / 0
+            </div>
+            <div id="sentence-container" class="sentence-display text-center border-2 border-dashed border-gray-300 rounded-lg bg-gray-50">
+                <span id="current-sentence" class="text-gray-700">Cargando oración...</span>
+            </div>
+        </div>
+
+        <!-- Formulario de Análisis -->
+        <div class="space-y-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+                <!-- 1. Indefinido (Texto) - Ahora es solo un indicador -->
+                <div class="flex flex-col">
+                    <label for="indefinido-input" class="text-sm font-medium text-gray-700 mb-2">1. Indefinido Seleccionado</label>
+                    <input type="text" id="indefinido-input" placeholder="Haz click en una palabra para seleccionar"
+                           class="p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 transition duration-150 bg-gray-100"
+                           readonly> <!-- Hacemos el input de solo lectura -->
+                </div>
+
+                <!-- 2. Función -->
+                <div class="flex flex-col">
+                    <label for="funcion-select" class="text-sm font-medium text-gray-700 mb-2">2. Función</label>
+                    <select id="funcion-select" class="p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 bg-white transition duration-150">
+                        <option value="" disabled selected>Selecciona la función</option>
+                        <option value="Determinante">Determinante</option>
+                        <option value="Complemento">Complemento</option>
+                        <option value="Núcleo">Núcleo</option>
+                    </select>
+                </div>
+
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+
+                <!-- 3. Género -->
+                <div class="flex flex-col">
+                    <label for="genero-select" class="text-sm font-medium text-gray-700 mb-2">3. Género</label>
+                    <select id="genero-select" class="p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 bg-white transition duration-150">
+                        <option value="" disabled selected>Selecciona el género</option>
+                        <option value="Masculino">Masculino</option>
+                        <option value="Femenino">Femenino</option>
+                        <option value="Neutro">Neutro (invariable)</option>
+                    </select>
+                    <div id="genero-note" class="invariable-note hidden">El género para esta palabra es invariable ('Neutro').</div>
+                </div>
+
+                <!-- 4. Número -->
+                <div class="flex flex-col">
+                    <label for="numero-select" class="text-sm font-medium text-gray-700 mb-2">4. Número</label>
+                    <select id="numero-select" class="p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 bg-white transition duration-150">
+                        <option value="" disabled selected>Selecciona el número</option>
+                        <option value="Singular">Singular</option>
+                        <option value="Plural">Plural</option>
+                    </select>
+                    <div id="numero-note" class="invariable-note hidden">El número para esta palabra es invariable ('Singular').</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Botones y Feedback -->
+        <div class="mt-8 flex flex-col sm:flex-row gap-4">
+            <button id="submit-button"
+                    class="flex-1 bg-blue-600 text-white font-semibold py-3 px-6 rounded-lg hover:bg-blue-700 transition duration-200 shadow-md">
+                Comprobar
+            </button>
+            <button id="next-button" disabled
+                    class="flex-1 bg-gray-400 text-white font-semibold py-3 px-6 rounded-lg transition duration-200 opacity-50 cursor-not-allowed">
+                Siguiente Oración
+            </button>
+        </div>
+
+        <div id="feedback-message" class="mt-6 p-4 rounded-lg font-semibold text-center hidden">
+            <!-- Mensajes de feedback aquí -->
+        </div>
+    </div>
+
+    <script>
+        // Array de oraciones ampliado a 30
+        const sentences = [
+            // Originales 1-15
+            { text: "Tenemos poco tiempo para terminar el proyecto.", answer: "poco", function: "Determinante", gender: "Masculino", number: "Singular" },
+            { text: "¿Ves a alguien en el pasillo?", answer: "alguien", function: "Núcleo", gender: "Neutro", number: "Singular" },
+            { text: "Compramos algunas flores rojas para la fiesta.", answer: "algunas", function: "Determinante", gender: "Femenino", number: "Plural" },
+            { text: "No quedó ningún postre después de la cena.", answer: "ningún", function: "Determinante", gender: "Masculino", number: "Singular" },
+            { text: "Había demasiadas sillas rotas en el almacén.", answer: "demasiadas", function: "Determinante", gender: "Femenino", number: "Plural" },
+            { text: "De todos los regalos, solo me gustaron pocos.", answer: "pocos", function: "Núcleo", gender: "Masculino", number: "Plural" },
+            { text: "La respuesta cualquiera no servirá.", answer: "cualquiera", function: "Complemento", gender: "Neutro", number: "Singular" },
+            { text: "No tienes ninguna razón para quejarte.", answer: "ninguna", function: "Determinante", gender: "Femenino", number: "Singular" },
+            { text: "Dicen que alguien ha roto el jarrón.", answer: "alguien", function: "Núcleo", gender: "Neutro", number: "Singular" },
+            { text: "Le dimos muchos abrazos de despedida.", answer: "muchos", function: "Determinante", gender: "Masculino", number: "Plural" },
+            { text: "Encontré una revista cualquiera en la basura.", answer: "cualquiera", function: "Complemento", gender: "Neutro", number: "Singular" },
+            { text: "No trajo ninguno a la reunión.", answer: "ninguno", function: "Núcleo", gender: "Masculino", number: "Singular" },
+            { text: "Hay poca luz en esta habitación.", answer: "poca", function: "Determinante", gender: "Femenino", number: "Singular" },
+            { text: "Creo que me dio demasiado más de lo necesario.", answer: "demasiado", function: "Núcleo", gender: "Masculino", number: "Singular" },
+            { text: "Ella tiene algunas amigas leales.", answer: "algunas", function: "Determinante", gender: "Femenino", number: "Plural" },
+            // Nuevas 16-30
+            { text: "Es mejor que no te metas en ningún problema.", answer: "ningún", function: "Determinante", gender: "Masculino", number: "Singular" },
+            { text: "No vimos nada de interés en la exposición.", answer: "nada", function: "Núcleo", gender: "Neutro", number: "Singular" },
+            { text: "Trae algo para picar antes de que lleguen.", answer: "algo", function: "Núcleo", gender: "Neutro", number: "Singular" },
+            { text: "Hay pocos estudiantes matriculados en ese curso.", answer: "pocos", function: "Determinante", gender: "Masculino", number: "Plural" },
+            { text: "Tenía demasiada energía para quedarse quieto.", answer: "demasiada", function: "Determinante", gender: "Femenino", number: "Singular" },
+            { text: "Cualquier persona puede cometer un error.", answer: "Cualquier", function: "Determinante", gender: "Neutro", number: "Singular" },
+            { text: "Sufrió algunas consecuencias por su decisión.", answer: "algunas", function: "Determinante", gender: "Femenino", number: "Plural" },
+            { text: "No queda mucho pan en la despensa.", answer: "mucho", function: "Determinante", gender: "Masculino", number: "Singular" },
+            { text: "Los niños han comido demasiadas golosinas.", answer: "demasiadas", function: "Determinante", gender: "Femenino", number: "Plural" },
+            { text: "Nadie sabía la respuesta correcta.", answer: "Nadie", function: "Núcleo", gender: "Neutro", number: "Singular" },
+            { text: "Tomamos pocos días de vacaciones este año.", answer: "pocos", function: "Determinante", gender: "Masculino", number: "Plural" },
+            { text: "Si necesitas ayuda, puedes preguntar a algún profesor.", answer: "algún", function: "Determinante", gender: "Masculino", number: "Singular" },
+            { text: "Recibimos muchas felicitaciones por el evento.", answer: "muchas", function: "Determinante", gender: "Femenino", number: "Plural" },
+            { text: "De todo lo que compró, nada es esencial.", answer: "nada", function: "Núcleo", gender: "Neutro", number: "Singular" },
+            { text: "Te enviaré algunos documentos por correo.", answer: "algunos", function: "Determinante", gender: "Masculino", number: "Plural" }
+        ];
+
+        let currentSentenceIndex = 0;
+        let score = 0;
+        let totalAttempts = 0;
+        let currentSentence;
+        const totalQuestions = sentences.length;
+
+        // Referencias a los elementos del DOM
+        const currentSentenceEl = document.getElementById('current-sentence');
+        const selectedWordDisplay = document.getElementById('indefinido-input'); // Ahora es el display de la palabra seleccionada
+        const funcionSelect = document.getElementById('funcion-select');
+        const generoSelect = document.getElementById('genero-select');
+        const numeroSelect = document.getElementById('numero-select');
+        const submitButton = document.getElementById('submit-button');
+        const nextButton = document.getElementById('next-button');
+        const feedbackMessageEl = document.getElementById('feedback-message');
+        const scoreDisplay = document.getElementById('score-display');
+        const generoNote = document.getElementById('genero-note');
+        const numeroNote = document.getElementById('numero-note');
+
+        // Función para comparar, ignorando tildes, mayúsculas y signos de puntuación finales
+        const compareString = (str1, str2) => {
+            const cleanStr1 = str1.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase().replace(/[.,?!:;]$/, '');
+            const cleanStr2 = str2.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase().replace(/[.,?!:;]$/, '');
+            return cleanStr1 === cleanStr2;
+        };
+        
+        // Función para configurar la selección de palabras
+        function setupWordSelection() {
+            const clickableWords = currentSentenceEl.querySelectorAll('.clickable-word');
+
+            // 1. Limpiar selecciones previas
+            clickableWords.forEach(wordSpan => {
+                wordSpan.classList.remove('selected-word', 'bg-red-600', 'bg-green-600');
+                wordSpan.onclick = null; // Limpiar listeners previos
+            });
+
+            // 2. Agregar el listener de clic a cada palabra
+            clickableWords.forEach(wordSpan => {
+                wordSpan.addEventListener('click', (event) => {
+                    // Limpiar selección anterior
+                    clickableWords.forEach(span => span.classList.remove('selected-word', 'bg-red-600', 'bg-green-600'));
+
+                    // Obtener el texto de la palabra y limpiarlo (quitar signos de puntuación)
+                    let rawWord = event.target.textContent.trim();
+                    let cleanWord = rawWord.replace(/[.,?!:;]$/, '');
+
+                    // Actualizar el campo de visualización y resaltar la palabra seleccionada
+                    selectedWordDisplay.value = cleanWord;
+                    event.target.classList.add('selected-word');
+                    
+                    // Disparar la lógica de verificación de invariables
+                    handleInvariableCheck(cleanWord);
+                });
+            });
+        }
+        
+        // Función para manejar la lógica de deshabilitar selects para palabras invariables
+        function handleInvariableCheck(word) {
+            const lowerWord = word.toLowerCase();
+            // Palabras invariables que no tienen variaciones de género/número (alguien, nadie, cualquiera, algo, nada)
+            const isInvariable = ['alguien', 'nadie', 'cualquiera', 'algo', 'nada'].includes(lowerWord);
+            
+            // Si es un pronombre/adverbio invariable forzamos 'Neutro' y 'Singular'
+            if (isInvariable) {
+                generoSelect.value = 'Neutro';
+                numeroSelect.value = 'Singular';
+                generoSelect.disabled = true;
+                numeroSelect.disabled = true;
+                generoNote.classList.remove('hidden');
+                numeroNote.classList.remove('hidden');
+            } else {
+                // Si es un indefinido variable (alguna, muchos, poco, etc.), habilitar las opciones
+                generoSelect.disabled = false;
+                numeroSelect.disabled = false;
+                generoNote.classList.add('hidden');
+                numeroNote.classList.add('hidden');
+                // Si estaba forzado, limpiamos la selección para que el usuario elija
+                if (generoSelect.value === 'Neutro' || numeroSelect.value === 'Singular') {
+                    generoSelect.value = '';
+                    numeroSelect.value = '';
+                }
+            }
+        }
+
+
+        // Función para cargar una nueva oración
+        function loadNewSentence() {
+            // Reiniciar el índice y barajar si se llega al final
+            if (currentSentenceIndex >= totalQuestions) {
+                currentSentenceIndex = 0; // Reiniciar el ciclo
+                sentences.sort(() => Math.random() - 0.5); // Barajar preguntas
+                // Reemplazo el alert por un mensaje de consola para evitar ventanas emergentes.
+                console.log("¡Ronda de 30 preguntas completada! Empezando de nuevo con las oraciones barajadas."); 
+            }
+
+            currentSentence = sentences[currentSentenceIndex];
+
+            // 1. Limpiar el display de la palabra seleccionada y los selects
+            selectedWordDisplay.value = '';
+            funcionSelect.value = '';
+            generoSelect.value = '';
+            numeroSelect.value = '';
+
+            // 2. Parsear y mostrar la oración con palabras clicables
+            // El regex /(\s+)/ divide por espacios, manteniendo los espacios como elementos separados en el array.
+            const words = currentSentence.text.split(/(\s+)/); 
+
+            let htmlContent = '';
+            words.forEach(part => {
+                if (part.trim() === '') {
+                    // Es un espacio, mantenerlo
+                    htmlContent += part;
+                } else {
+                    // Es una palabra, envolverla en un span clicable
+                    // Usar text-gray-700 para que el color base sea menos invasivo que el azul por defecto del .clickable-word
+                    htmlContent += `<span class="clickable-word text-gray-700">${part}</span>`;
+                }
+            });
+
+            currentSentenceEl.innerHTML = htmlContent;
+
+            // 3. Configurar la interacción de selección de palabras
+            setupWordSelection();
+
+            // 4. Reiniciar el estado de los botones y el feedback
+            submitButton.disabled = false;
+            submitButton.classList.remove('opacity-50', 'cursor-not-allowed');
+            nextButton.disabled = true;
+            nextButton.classList.add('opacity-50', 'cursor-not-allowed');
+            feedbackMessageEl.classList.add('hidden');
+            feedbackMessageEl.classList.remove('correct-feedback', 'incorrect-feedback');
+
+            // 5. Asegurar que los selects estén habilitados y sin notas
+            generoSelect.disabled = false;
+            numeroSelect.disabled = false;
+            generoNote.classList.add('hidden');
+            numeroNote.classList.add('hidden');
+            
+            updateScoreDisplay();
+        }
+
+        // Función para actualizar la puntuación
+        function updateScoreDisplay() {
+            scoreDisplay.textContent = `Pregunta: ${currentSentenceIndex + 1} / ${totalQuestions} | Puntuación: ${score} / ${totalAttempts}`;
+        }
+
+        // Función para verificar la respuesta del usuario
+        function checkAnswer() {
+            if (submitButton.disabled) return;
+
+            const userIndefinido = selectedWordDisplay.value.trim().toLowerCase();
+            const userFuncion = funcionSelect.value;
+            const userGenero = generoSelect.value;
+            const userNumero = numeroSelect.value;
+            
+            if (userIndefinido === '' || userFuncion === '' || userGenero === '' || userNumero === '') {
+                 // Mensaje si falta cualquier selección
+                 feedbackMessageEl.innerHTML = "Por favor, **selecciona la palabra indefinida** y completa **todos los campos** de análisis.";
+                 feedbackMessageEl.classList.remove('hidden', 'correct-feedback');
+                 feedbackMessageEl.classList.add('incorrect-feedback');
+                 return; // Detener la ejecución sin contar el intento como error
+            }
+
+            totalAttempts++;
+
+            const correctIndefinido = currentSentence.answer.toLowerCase();
+
+            // Determinar si la palabra correcta es un invariable (para la lógica de Neutro/Singular)
+            const isInvariableForced = ['alguien', 'nadie', 'cualquiera', 'algo', 'nada'].includes(correctIndefinido);
+
+            // 1. Indefinido (La palabra seleccionada es la palabra correcta)
+            const isIndefinidoCorrect = compareString(userIndefinido, correctIndefinido);
+
+            // 2. Función
+            const isFuncionCorrect = userFuncion === currentSentence.function;
+
+            // 3. Género
+            let isGeneroCorrect;
+            // La lógica de forzar género/número se aplica SOLO si la palabra seleccionada es la correcta.
+            if (isIndefinidoCorrect && isInvariableForced) {
+                isGeneroCorrect = userGenero === "Neutro";
+            } else if (!isIndefinidoCorrect && isInvariableForced) {
+                 // Si selecciona una palabra incorrecta, no aplicamos la regla de invariabilidad forzada para el feedback.
+                 // Simplemente verificamos contra el género de la respuesta incorrecta (que es complicado y mejor evitar).
+                 // Para simplificar, si la palabra seleccionada es incorrecta, la parte de género/número de su puntuación también es incorrecta.
+                 // Sin embargo, si la palabra *correcta* es invariable, el género y número *correctos* para el feedback deben ser 'Neutro' y 'Singular'.
+                isGeneroCorrect = userGenero === currentSentence.gender; // Usa el valor correcto para comparación
+            } else {
+                isGeneroCorrect = userGenero === currentSentence.gender;
+            }
+
+            // 4. Número
+            let isNumeroCorrect;
+            if (isIndefinidoCorrect && isInvariableForced) {
+                isNumeroCorrect = userNumero === "Singular";
+            } else if (!isIndefinidoCorrect && isInvariableForced) {
+                isNumeroCorrect = userNumero === currentSentence.number; // Usa el valor correcto para comparación
+            } else {
+                isNumeroCorrect = userNumero === currentSentence.number;
+            }
+
+            // Total de aciertos
+            const allCorrect = isIndefinidoCorrect && isFuncionCorrect && isGeneroCorrect && isNumeroCorrect;
+
+            let message = '';
+            let feedbackClass = '';
+            
+            // Lógica de Feedback
+            if (allCorrect) {
+                score++;
+                message = "¡Correcto! Todos los análisis son precisos.";
+                feedbackClass = 'correct-feedback';
+            } else {
+                let errorMessages = ["¡Incorrecto! Revísalo con calma:"];
+
+                if (!isIndefinidoCorrect) errorMessages.push(`- Indefinido: Incorrecto. Debías seleccionar **${currentSentence.answer}**.`);
+                if (isIndefinidoCorrect) { // Solo si seleccionó la palabra correcta, mostramos errores de análisis
+                    if (!isFuncionCorrect) errorMessages.push(`- Función: Incorrecta. Debía ser **${currentSentence.function}**.`);
+                    if (!isGeneroCorrect) errorMessages.push(`- Género: Incorrecto. Debía ser **${currentSentence.gender}**${isInvariableForced ? ' (Neutro por ser invariable).' : '.'}`);
+                    if (!isNumeroCorrect) errorMessages.push(`- Número: Incorrecto. Debía ser **${currentSentence.number}**${isInvariableForced ? ' (Singular por ser invariable).' : '.'}`);
+                }
+                
+                // Si la palabra seleccionada es incorrecta Y el análisis también, simplificamos el mensaje.
+                if (!isIndefinidoCorrect && (!isFuncionCorrect || !isGeneroCorrect || !isNumeroCorrect)) {
+                     errorMessages.length = 1; // Limpiar los mensajes de error de análisis si la palabra fue incorrecta
+                     errorMessages.push(`- Indefinido: Incorrecto. Debías seleccionar **${currentSentence.answer}**.`);
+                     errorMessages.push("Revisa también el análisis de Función/Género/Número para la palabra correcta.");
+                }
+
+
+                message = errorMessages.join('<br>');
+                feedbackClass = 'incorrect-feedback';
+            }
+
+            // Mostrar feedback
+            feedbackMessageEl.innerHTML = message;
+            feedbackMessageEl.classList.remove('hidden');
+            feedbackMessageEl.classList.add(feedbackClass);
+
+            // Deshabilitar botón de comprobar y habilitar el de siguiente
+            submitButton.disabled = true;
+            submitButton.classList.add('opacity-50', 'cursor-not-allowed');
+            nextButton.disabled = false;
+            nextButton.classList.remove('opacity-50', 'cursor-not-allowed');
+
+            // Resaltar la palabra correcta en la oración y deshabilitar interacción
+            const allWords = currentSentenceEl.querySelectorAll('.clickable-word');
+            allWords.forEach(wordSpan => {
+                const cleanWord = wordSpan.textContent.replace(/[.,?!:;]$/, '').trim();
+                
+                // Remover todas las clases de selección/feedback
+                wordSpan.classList.remove('selected-word', 'bg-red-600', 'bg-green-600');
+                wordSpan.onclick = null; // Deshabilitar clics
+
+                if (compareString(cleanWord, currentSentence.answer)) {
+                    // Resaltar la palabra objetivo con color de feedback
+                    wordSpan.classList.add('selected-word', allCorrect ? 'bg-green-600' : 'bg-red-600');
+                }
+            });
+            
+            // Asegurar que el display de la palabra tenga la respuesta correcta
+            selectedWordDisplay.value = currentSentence.answer;
+            
+            updateScoreDisplay();
+        }
+
+        // Event listener para el botón Comprobar
+        submitButton.addEventListener('click', checkAnswer);
+
+        // Event listener para el botón Siguiente Oración
+        nextButton.addEventListener('click', () => {
+            currentSentenceIndex++;
+            loadNewSentence();
+        });
+
+        // Cargar la primera oración al iniciar
+        document.addEventListener('DOMContentLoaded', loadNewSentence);
+
+    </script>
+</body>
+</html>
